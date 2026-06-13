@@ -1,0 +1,2 @@
+[console_scripts]
+uem-generate = uem_data_generator.cli:main

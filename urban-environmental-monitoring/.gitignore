@@ -1,0 +1,7 @@
+.env
+data/dataset/postgres/*
+!data/dataset/postgres/.gitkeep
+data/dataset/influx/*
+!data/dataset/influx/.gitkeep
+data/dataset/live/*
+!data/dataset/live/.gitkeep

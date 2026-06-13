@@ -1,0 +1,6 @@
+metric,unit,warning_threshold,critical_threshold,description,source
+pm25,ug/m3,35.0,50.0,Hourly particulate matter operational threshold,Synthetic demo policy profile
+pm10,ug/m3,55.0,70.0,Hourly particulate matter operational threshold,Synthetic demo policy profile
+no2,ug/m3,55.0,70.0,Hourly nitrogen dioxide operational threshold,Synthetic demo policy profile
+o3,ug/m3,120.0,165.0,Hourly ozone operational threshold,Synthetic demo policy profile
+noise_db,dB,70.0,82.0,Hourly urban noise operational threshold,Synthetic demo policy profile
