@@ -1,0 +1,1107 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "panels": [],
+      "title": "City Command Center",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "afpfdp5pc658gb"
+      },
+      "description": "Highest alert severity observed in the selected time range. CLEAR means no alert, WATCH means warning-level events, CRITICAL means at least one critical event.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "CLEAR"
+                },
+                "1": {
+                  "color": "semi-dark-orange",
+                  "index": 1,
+                  "text": "WATCH"
+                },
+                "2": {
+                  "color": "dark-red",
+                  "index": 2,
+                  "text": "CRITICAL"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "semi-dark-orange",
+                "value": 1
+              },
+              {
+                "color": "dark-red",
+                "value": 2
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 0,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "afpfdp5pc658gb"
+          },
+          "query": "import \"array\"\n\nalerts =\n    from(bucket: \"urban_alerts\")\n        |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n        |> filter(fn: (r) =>\n            r._measurement == \"urban_alerts\" and\n            r._field == \"severity_level\"\n        )\n        |> group(columns: [])\n        |> max(column: \"_value\")\n        |> keep(columns: [\"_value\"])\n\nfallback =\n    array.from(rows: [{_value: 0}])\n\nunion(tables: [alerts, fallback])\n    |> group(columns: [])\n    |> max(column: \"_value\")\n    |> map(fn: (r) => ({\n        _time: now(),\n        _value: int(v: r._value)\n    }))\n    |> yield(name: \"city_status\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Overall City Status",
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "afpfdp5pc658gb"
+      },
+      "description": "Total number of warning and critical alert records in the selected time range.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "displayName": "Alerts",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 5,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "afpfdp5pc658gb"
+          },
+          "query": "import \"array\"\n\nalerts =\n    from(bucket: \"urban_alerts\")\n        |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n        |> filter(fn: (r) =>\n            r._measurement == \"urban_alerts\" and\n            r._field == \"severity_level\"\n        )\n        |> group(columns: [])\n        |> count(column: \"_value\")\n        |> keep(columns: [\"_value\"])\n\nfallback =\n    array.from(rows: [{_value: 0}])\n\nunion(tables: [alerts, fallback])\n    |> group(columns: [])\n    |> sum(column: \"_value\")\n    |> map(fn: (r) => ({\n        _time: now(),\n        _value: int(v: r._value)\n    }))\n    |> yield(name: \"active_alerts\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Alerts",
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "afpfdp5pc658gb"
+      },
+      "description": "Number of distinct grid zones that reported at least one critical alert in the selected time range.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 10,
+        "y": 1
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "afpfdp5pc658gb"
+          },
+          "query": "import \"array\"\n\ncritical_zones =\n    from(bucket: \"urban_alerts\")\n        |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n        |> filter(fn: (r) =>\n            r._measurement == \"urban_alerts\" and\n            r._field == \"severity_level\" and\n            r._value == 2\n        )\n        |> group(columns: [\"grid_id\"])\n        |> count(column: \"_value\")\n        |> group(columns: [])\n        |> count(column: \"_value\")\n        |> keep(columns: [\"_value\"])\n\nfallback =\n    array.from(rows: [{_value: 0}])\n\nunion(tables: [critical_zones, fallback])\n    |> group(columns: [])\n    |> sum(column: \"_value\")\n    |> map(fn: (r) => ({\n        _time: now(),\n        _value: int(v: r._value)\n    }))\n    |> yield(name: \"critical_zones\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Critical Zones",
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "afpfdp5pc658gb"
+      },
+      "description": "Metric with the highest number of alert records in the selected time range.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "minWidth": 100
+          },
+          "mappings": [],
+          "noValue": "No alerts",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "string"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 15,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "10.4.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "afpfdp5pc658gb"
+          },
+          "query": "from(bucket: \"urban_alerts\")\n    |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n    |> filter(fn: (r) =>\n        r._measurement == \"urban_alerts\" and\n        r._field == \"severity_level\"\n    )\n    |> group(columns: [\"metric\"])\n    |> count(column: \"_value\")\n    |> group(columns: [])\n    |> sort(columns: [\"_value\"], desc: true)\n    |> limit(n: 1)\n    |> keep(columns: [\"metric\", \"_value\"])\n    |> rename(columns: {\n        metric: \"Metric\",\n        _value: \"Alerts\"\n    })\n    |> yield(name: \"worst_metric\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Worst Metric",
+      "transparent": true,
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "afpfdp5pc658gb"
+      },
+      "description": "Age in seconds of the most recent raw telemetry point available in urban_raw. It is used as a data freshness indicator.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "NO DATA",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 3600
+              },
+              {
+                "color": "semi-dark-red",
+                "value": 7200
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 19,
+        "y": 1
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "afpfdp5pc658gb"
+          },
+          "query": "from(bucket: \"urban_raw\")\n    |> range(start: -35d)\n    |> filter(fn: (r) =>\n        r._measurement == \"urban_telemetry\" and\n        r._field == \"pm25\"\n    )\n    |> group(columns: [])\n    |> last()\n    |> map(fn: (r) => ({\n        _time: now(),\n        _value: float(v: uint(v: now()) - uint(v: r._time)) / 1000000000.0\n    }))\n    |> yield(name: \"raw_age_seconds\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Last Raw Data Age",
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "semi-dark-red",
+                "value": 2
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 15,
+        "w": 14,
+        "x": 0,
+        "y": 6
+      },
+      "id": 8,
+      "options": {
+        "basemap": {
+          "config": {},
+          "name": "Layer 0",
+          "type": "default"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false,
+          "showScale": false,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "config": {
+              "rules": [],
+              "src": "public/geojson/nyc_zones.geojson",
+              "style": {
+                "color": {
+                  "fixed": "#ccccdc"
+                },
+                "opacity": 0.1,
+                "rotation": {
+                  "fixed": 0,
+                  "max": 360,
+                  "min": -360,
+                  "mode": "mod"
+                },
+                "size": {
+                  "fixed": 5,
+                  "max": 15,
+                  "min": 2
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                },
+                "symbolAlign": {
+                  "horizontal": "center",
+                  "vertical": "center"
+                },
+                "textConfig": {
+                  "fontSize": 12,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
+              }
+            },
+            "name": "Layer 2",
+            "opacity": 0.3,
+            "tooltip": true,
+            "type": "geojson"
+          },
+          {
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "field": "max_severity",
+                  "fixed": "dark-green"
+                },
+                "opacity": 0.3,
+                "rotation": {
+                  "fixed": 0,
+                  "max": 360,
+                  "min": -360,
+                  "mode": "mod"
+                },
+                "size": {
+                  "field": "alert_count",
+                  "fixed": 5,
+                  "max": 18,
+                  "min": 2
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                },
+                "symbolAlign": {
+                  "horizontal": "center",
+                  "vertical": "center"
+                },
+                "textConfig": {
+                  "fontSize": 12,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
+              }
+            },
+            "location": {
+              "latitude": "latitude",
+              "longitude": "longitude",
+              "mode": "coords"
+            },
+            "name": "Layer 1",
+            "tooltip": true,
+            "type": "markers"
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        },
+        "view": {
+          "allLayers": true,
+          "id": "coords",
+          "lat": 40.712608,
+          "lon": -74.017831,
+          "zoom": 9.26
+        }
+      },
+      "pluginVersion": "10.4.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cfpffid223pxce"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n    grid_id,\n    display_name,\n    borough,\n    zone_type,\n    center_lat AS latitude,\n    center_lon AS longitude\nFROM grid_context\nORDER BY grid_id;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "afpfdp5pc658gb"
+          },
+          "hide": false,
+          "query": "from(bucket: \"urban_alerts\")\n    |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n    |> filter(fn: (r) =>\n        r._measurement == \"urban_alerts\" and\n        r._field == \"severity_level\"\n    )\n    |> group(columns: [\"grid_id\"])\n    |> reduce(\n        identity: {\n            alert_count: 0,\n            max_severity: 0\n        },\n        fn: (r, accumulator) => ({\n            alert_count: accumulator.alert_count + 1,\n            max_severity: if int(v: r._value) > accumulator.max_severity\n                then int(v: r._value)\n                else accumulator.max_severity\n        })\n    )\n    |> group(columns: [])\n    |> keep(columns: [\"grid_id\", \"alert_count\", \"max_severity\"])\n    |> yield(name: \"zone_alerts\")",
+          "refId": "B"
+        }
+      ],
+      "title": "City Risk Geomap",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "grid_id",
+            "mode": "inner"
+          }
+        }
+      ],
+      "type": "geomap"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "afpfdp5pc658gb"
+      },
+      "description": "Top zones by number of critical alert records in the selected time range.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Critical alerts"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 118
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zone"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 111
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 15,
+        "w": 10,
+        "x": 14,
+        "y": 6
+      },
+      "id": 9,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "10.4.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "afpfdp5pc658gb"
+          },
+          "query": "from(bucket: \"urban_alerts\")\n    |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n    |> filter(fn: (r) =>\n        r._measurement == \"urban_alerts\" and\n        r._field == \"severity_level\" and\n        r._value == 2\n    )\n    |> group(columns: [\"grid_id\", \"borough\", \"zone_type\"])\n    |> count(column: \"_value\")\n    |> group(columns: [])\n    |> sort(columns: [\"_value\"], desc: true)\n    |> limit(n: 20)\n    |> keep(columns: [\"grid_id\", \"borough\", \"zone_type\", \"_value\"])\n    |> rename(columns: {\n        grid_id: \"Zone\",\n        borough: \"Borough\",\n        zone_type: \"Zone type\",\n        _value: \"Critical alerts\"\n    })\n    |> yield(name: \"top_critical_zones\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Critical Zones",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 10,
+      "panels": [],
+      "title": "Alert Operations",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "afpfdp5pc658gb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "fillOpacity": 70,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineWidth": 1,
+            "spanNulls": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "1": {
+                  "index": 0,
+                  "text": "Warning"
+                },
+                "2": {
+                  "index": 1,
+                  "text": "Critical"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "yellow",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "id": 11,
+      "options": {
+        "alignValue": "left",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "mergeValues": true,
+        "rowHeight": 0.8,
+        "showValue": "auto",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "afpfdp5pc658gb"
+          },
+          "query": "from(bucket: \"urban_alerts\")\n    |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n    |> filter(fn: (r) =>\n        r._measurement == \"urban_alerts\" and\n        r._field == \"severity_level\"\n    )\n    |> group(columns: [\"metric\"])\n    |> aggregateWindow(every: 1h, fn: max, createEmpty: false)\n    |> keep(columns: [\"_time\", \"_value\", \"metric\"])\n    |> yield(name: \"alert_state_timeline\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Alert State Timeline",
+      "type": "state-timeline"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "afpfdp5pc658gb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "id": 12,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "Metric",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "afpfdp5pc658gb"
+          },
+          "query": "from(bucket: \"urban_alerts\")\n    |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n    |> filter(fn: (r) =>\n        r._measurement == \"urban_alerts\" and\n        r._field == \"severity_level\"\n    )\n    |> group(columns: [\"metric\"])\n    |> count(column: \"_value\")\n    |> group(columns: [])\n    |> sort(columns: [\"_value\"], desc: true)\n    |> keep(columns: [\"metric\", \"_value\"])\n    |> rename(columns: {\n        metric: \"Metric\",\n        _value: \"Alerts\"\n    })\n    |> yield(name: \"alerts_by_metric\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Alerts by Metric",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "afpfdp5pc658gb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "semi-dark-red",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 30
+      },
+      "id": 13,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "afpfdp5pc658gb"
+          },
+          "query": "from(bucket: \"urban_alerts\")\n    |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n    |> filter(fn: (r) =>\n        r._measurement == \"urban_alerts\" and\n        r._field == \"severity_level\"\n    )\n    |> map(fn: (r) => ({\n        r with\n        Severity: if int(v: r._value) == 2 then \"Critical\" else \"Warning\"\n    }))\n    |> group(columns: [\"borough\", \"Severity\"])\n    |> count(column: \"_value\")\n    |> group(columns: [])\n    |> pivot(\n        rowKey: [\"borough\"],\n        columnKey: [\"Severity\"],\n        valueColumn: \"_value\"\n    )\n    |> rename(columns: {\n        borough: \"Borough\"\n    })\n    |> yield(name: \"alerts_by_borough_severity\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Alerts by Borough and Severity",
+      "transparent": true,
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "afpfdp5pc658gb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 30
+      },
+      "id": 14,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true
+      },
+      "pluginVersion": "10.4.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "afpfdp5pc658gb"
+          },
+          "query": "from(bucket: \"urban_alerts\")\n    |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n    |> filter(fn: (r) =>\n        r._measurement == \"urban_alerts\" and\n        (\n            r._field == \"observed_value\" or\n            r._field == \"threshold_value\" or\n            r._field == \"severity_level\"\n        )\n    )\n    |> pivot(\n        rowKey: [\"_time\", \"grid_id\", \"metric\"],\n        columnKey: [\"_field\"],\n        valueColumn: \"_value\"\n    )\n    |> map(fn: (r) => ({\n        r with\n        Severity: if int(v: r.severity_level) == 2 then \"Critical\" else \"Warning\",\n        exceedance_pct: ((float(v: r.observed_value) - float(v: r.threshold_value)) / float(v: r.threshold_value)) * 100.0\n    }))\n    |> sort(columns: [\"_time\"], desc: true)\n    |> limit(n: 50)\n    |> keep(columns: [\n        \"_time\",\n        \"Severity\",\n        \"metric\",\n        \"observed_value\",\n        \"threshold_value\",\n        \"exceedance_pct\",\n        \"grid_id\",\n        \"borough\",\n        \"zone_type\"\n    ])\n    |> rename(columns: {\n        _time: \"Time\",\n        metric: \"Metric\",\n        observed_value: \"Observed\",\n        threshold_value: \"Threshold\",\n        exceedance_pct: \"Exceedance %\",\n        grid_id: \"Zone\",\n        borough: \"Borough\",\n        zone_type: \"Zone type\"\n    })\n    |> yield(name: \"latest_alerts\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Latest Alerts",
+      "type": "table"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": [
+    "ADMM",
+    "Urban Monitoring",
+    "InfluxDB",
+    "PostgreSQL",
+    "Kafka",
+    "Grafana"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "2026-06-07T22:48:41.328Z",
+    "to": "2026-06-21T22:48:41.328Z"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "timezone": "utc",
+  "title": "Urban Environmental Monitoring — City Operations Dashboard",
+  "uid": "afpfgi5hnmxvkc",
+  "version": 6,
+  "weekStart": ""
+}
