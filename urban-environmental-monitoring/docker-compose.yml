@@ -81,6 +81,24 @@ services:
       - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
     restart: unless-stopped
 
+  live-producer:
+    image: apache/kafka:4.1.1
+    container_name: urban_live_producer
+    profiles: ["live"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka:19092
+      KAFKA_TOPIC: urban.telemetry
+      LIVE_INTERVAL_SECONDS: ${LIVE_INTERVAL_SECONDS:-60}
+      LIVE_DATA_DIR: /dataset/live
+    volumes:
+      - ./data/dataset/live:/dataset/live:ro
+      - ./scripts/continuous_live.sh:/opt/uem/continuous_live.sh:ro
+    command: ["/bin/bash", "/opt/uem/continuous_live.sh"]
+    restart: unless-stopped
+
   grafana:
     image: grafana/grafana:10.4.3
     container_name: urban_grafana

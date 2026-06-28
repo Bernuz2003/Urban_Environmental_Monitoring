@@ -88,7 +88,7 @@ Il checkpoint:
 - stampa conteggi principali.
 
 
-## 7. Avviare live ingestion e replay
+## 7. Avviare la live ingestion continua
 
 ```bash
 make bootstrap-live
@@ -99,11 +99,24 @@ Il checkpoint:
 - avvia Kafka;
 - crea il topic `urban.telemetry` se manca;
 - avvia Telegraf;
-- pubblica i quattro batch live;
+- avvia un producer continuo;
 - stampa offset Kafka, lag consumer e log recenti Telegraf.
 
+Il producer invia una lettura per ciascuno dei 199 sensori attivi ogni minuto,
+quindi 199 punti/minuto. Ogni punto riceve il timestamp del minuto UTC corrente.
+I quattro file `batch_00.lp`, `batch_15.lp`, `batch_30.lp` e `batch_45.lp`
+forniscono i valori sintetici di base per il quarto d'ora corrente.
 
-I quattro batch vengono pubblicati su Kafka con timestamp appartenenti all'ultima ora completa. Telegraf li scrive in `urban_raw`. Entro circa un minuto, le Tasks aggiornano `urban_hourly` e `urban_alerts`.
+Telegraf consuma Kafka e scrive i punti in `urban_raw` entro pochi secondi. Le
+Tasks `raw_to_hourly` e `hourly_to_alerts` elaborano soltanto ore complete:
+l'aggregato hourly e gli alert dell'ora corrente compaiono dopo il cambio d'ora.
+
+Per seguire o fermare il producer:
+
+```bash
+make live-logs
+make stop-live
+```
 
 ## 8. Controllo
 

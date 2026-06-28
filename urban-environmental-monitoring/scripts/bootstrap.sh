@@ -19,7 +19,7 @@ usage() {
 Usage:
   ./scripts/bootstrap.sh core
   ./scripts/bootstrap.sh data
-  ./scripts/bootstrap.sh live [--no-replay]
+  ./scripts/bootstrap.sh live [--no-producer]
 
 The script is checkpoint-based. Missing manual setup is reported as a next step
 instead of being treated as a fatal error.
@@ -410,6 +410,10 @@ create_kafka_topic() {
 }
 
 print_live_summary() {
+    info "Continuous live producer"
+    docker compose ps live-producer || true
+    docker compose logs --tail=10 live-producer || true
+
     info "Kafka offsets"
     docker compose exec -T kafka /opt/kafka/bin/kafka-get-offsets.sh \
         --bootstrap-server kafka:19092 \
@@ -495,13 +499,13 @@ EOF
 }
 
 bootstrap_live() {
-    local replay="1"
+    local producer_mode="continuous"
     local arg
 
     for arg in "$@"; do
         case "$arg" in
-            --no-replay)
-                replay="0"
+            --no-producer)
+                producer_mode="none"
                 ;;
             *)
                 warn "unknown live option: $arg"
@@ -539,11 +543,16 @@ bootstrap_live() {
     docker compose up -d telegraf
     wait_for_service telegraf 90 || true
 
-    if [[ "$replay" == "1" ]]; then
-        ./scripts/replay_live.sh
-    else
-        ok "live replay skipped"
-    fi
+    case "$producer_mode" in
+        continuous)
+            info "Starting continuous live producer"
+            docker compose up -d live-producer
+            ok "continuous producer is running at ${LIVE_INTERVAL_SECONDS:-60}s intervals"
+            ;;
+        none)
+            ok "live producer skipped"
+            ;;
+    esac
 
     print_live_summary
 
@@ -551,7 +560,12 @@ bootstrap_live() {
 
 Live checkpoint completed.
 
-Use make status to inspect services, counts, Kafka lag and recent Telegraf logs.
+The continuous producer emits one sample per active sensor every minute.
+
+Use:
+  make live-logs  # follow producer activity
+  make stop-live  # stop new samples without stopping Kafka or Telegraf
+  make status     # inspect services, counts and Kafka lag
 EOF
 }
 

@@ -10,5 +10,8 @@ Repository runtime.
 
 La generazione del dataset è separata nel repository `urban-environmental-data-generator`.
 
+`make bootstrap-live` avvia un producer continuo che pubblica una lettura per
+sensore ogni minuto. Usare `make live-logs` per seguirlo e `make stop-live` per
+fermarlo.
 
 La procedura completa è in [`docs/setup/step_by_step.md`](docs/setup/step_by_step.md).
